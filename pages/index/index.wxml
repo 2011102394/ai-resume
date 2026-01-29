@@ -1,0 +1,76 @@
+<!--pages/index/index.wxml-->
+<view class="container">
+  <!-- 顶部品牌区 -->
+  <view class="brand-header">
+    <view class="brand-icon">✨</view>
+    <view class="more-btn">⋯</view>
+  </view>
+
+  <!-- 标题/标语区 -->
+  <view class="header">
+    <text class="main-title" style="min-height: 52rpx;">{{typedTitle}}</text>
+    <text class="sub-title">AI智能优化，让简历闪闪发光</text>
+  </view>
+
+  <!-- 核心输入区 -->
+  <view class="input-section">
+    <text class="input-label">工作经历描述</text>
+    <textarea 
+      class="textarea" 
+      placeholder="请粘贴或输入一段需要优化的工作经历描述..." 
+      bindinput="bindTextAreaInput"
+      value="{{workExperience}}"
+    ></textarea>
+    <view class="example-btn" bindtap="fillExample">
+      <text class="example-icon">💡</text>
+      <text class="example-text">参考示例</text>
+    </view>
+  </view>
+
+  <!-- 优化风格选择区 -->
+  <view class="style-section">
+    <text class="section-title">选择优化风格</text>
+    <view class="style-options">
+      <view 
+        class="style-option {{selectedStyle === 'data' ? 'selected' : ''}}" 
+        bindtap="selectStyle" 
+        data-style="data"
+      >
+        <text class="style-name">数据突出型</text>
+      </view>
+      <view 
+        class="style-option {{selectedStyle === 'leadership' ? 'selected' : ''}}" 
+        bindtap="selectStyle" 
+        data-style="leadership"
+      >
+        <text class="style-name">领导力凸显型</text>
+      </view>
+      <view 
+        class="style-option {{selectedStyle === 'concise' ? 'selected' : ''}}" 
+        bindtap="selectStyle" 
+        data-style="concise"
+      >
+        <text class="style-name">简洁通用型</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 行动按钮 -->
+  <view class="action-section">
+    <button 
+      class="action-btn" 
+      bindtap="startOptimization" 
+      disabled="{{isOptimizing}}"
+    >
+      {{isOptimizing ? 'AI优化中...' : '开始AI点睛'}} {{!isOptimizing ? '⚡' : ''}}
+    </button>
+  </view>
+
+  <!-- 隐私提示 -->
+  <view class="privacy-section">
+    <text class="privacy-text">点击开始即代表同意我们的</text>
+    <text class="privacy-link">服务协议</text>
+    <text class="privacy-text">与</text>
+    <text class="privacy-link">隐私政策</text>
+  </view>
+</view>
