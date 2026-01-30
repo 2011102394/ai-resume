@@ -73,12 +73,17 @@
   transform: translateY(-2rpx);
 }
 
+.input-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
 .input-label {
-  display: block;
   font-size: 28rpx;
   font-weight: 500;
   color: #333;
-  margin-bottom: 20rpx;
 }
 
 .textarea {
@@ -100,14 +105,18 @@
 }
 
 .example-btn {
-  position: absolute;
-  bottom: 30rpx;
-  right: 30rpx;
   display: flex;
   align-items: center;
   gap: 5rpx;
   font-size: 24rpx;
   color: #07c160;
+  padding: 10rpx;
+  border-radius: 8rpx;
+  transition: all 0.2s ease;
+}
+
+.example-btn:active {
+  background-color: rgba(7, 193, 96, 0.1);
 }
 
 .example-icon {
@@ -220,4 +229,206 @@
   color: #07c160;
   text-decoration: underline;
   margin: 0 5rpx;
+}
+
+/* ========== 参考示例弹窗样式 ========== */
+
+/* 遮罩层 */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+.modal-mask.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* 弹窗主体 */
+.example-modal {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #fff;
+  border-radius: 40rpx 40rpx 0 0;
+  padding: 40rpx 30rpx;
+  padding-bottom: calc(60rpx + env(safe-area-inset-bottom));
+  transform: translateY(100%);
+  transition: all 0.3s ease;
+  z-index: 101;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.example-modal.show {
+  transform: translateY(0);
+}
+
+/* 弹窗头部 */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 40rpx;
+}
+
+.modal-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.modal-close {
+  font-size: 48rpx;
+  color: #999;
+  line-height: 1;
+  padding: 10rpx;
+}
+
+/* 弹窗内容 */
+.modal-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.form-item {
+  margin-bottom: 40rpx;
+}
+
+.form-label {
+  display: block;
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+  margin-bottom: 20rpx;
+}
+
+.required {
+  color: #ff4d4f;
+}
+
+/* 选项列表 */
+.option-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.option-item {
+  padding: 16rpx 32rpx;
+  background-color: #f5f5f5;
+  border-radius: 8rpx;
+  font-size: 26rpx;
+  color: #666;
+  transition: all 0.2s ease;
+}
+
+.option-item.selected {
+  background-color: #07c160;
+  color: #fff;
+}
+
+/* 岗位输入框 */
+.position-input {
+  width: 100%;
+  height: 80rpx;
+  padding: 0 24rpx;
+  border: 2rpx solid #e8e8e8;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.position-input:focus {
+  border-color: #07c160;
+}
+
+/* 弹窗底部 */
+.modal-footer {
+  margin-top: 20rpx;
+  padding-top: 20rpx;
+  border-top: 2rpx solid #f0f0f0;
+}
+
+.generate-btn {
+  width: 100%;
+  height: 90rpx;
+  background: linear-gradient(135deg, #07c160, #05a650);
+  color: white;
+  border-radius: 45rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+  line-height: 90rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6rpx 20rpx rgba(7, 193, 96, 0.4);
+}
+
+.generate-btn[disabled] {
+  background: #a8dabf;
+  box-shadow: none;
+}
+
+/* 自定义职业分类输入区域 */
+.custom-category-section {
+  margin-top: 24rpx;
+  padding: 24rpx;
+  background-color: #f8f9fa;
+  border-radius: 16rpx;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.custom-label {
+  display: block;
+  font-size: 26rpx;
+  color: #333;
+  margin-bottom: 16rpx;
+  font-weight: 500;
+}
+
+.custom-category-input {
+  width: 100%;
+  height: 80rpx;
+  padding: 0 24rpx;
+  background-color: #fff;
+  border: 2rpx solid #e8e8e8;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.custom-category-input:focus {
+  border-color: #07c160;
+}
+
+.custom-hint {
+  display: block;
+  text-align: right;
+  font-size: 22rpx;
+  color: #999;
+  margin-top: 12rpx;
 }

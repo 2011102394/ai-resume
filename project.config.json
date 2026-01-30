@@ -50,6 +50,7 @@
   "libVersion": "3.5.2",
   "appid": "wxf18dce92c195a6a3",
   "projectname": "ai-resume",
+  "cloudfunctionRoot": "cloudfunctions/",
   "condition": {},
   "editorSetting": {
     "tabIndent": "insertSpaces",

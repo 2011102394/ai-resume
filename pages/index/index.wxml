@@ -14,17 +14,19 @@
 
   <!-- 核心输入区 -->
   <view class="input-section">
-    <text class="input-label">工作经历描述</text>
-    <textarea 
-      class="textarea" 
-      placeholder="请粘贴或输入一段需要优化的工作经历描述..." 
+    <view class="input-header">
+      <text class="input-label">工作经历描述</text>
+      <view class="example-btn" bindtap="fillExample">
+        <text class="example-icon">💡</text>
+        <text class="example-text">参考示例</text>
+      </view>
+    </view>
+    <textarea
+      class="textarea"
+      placeholder="请粘贴或输入一段需要优化的工作经历描述..."
       bindinput="bindTextAreaInput"
       value="{{workExperience}}"
     ></textarea>
-    <view class="example-btn" bindtap="fillExample">
-      <text class="example-icon">💡</text>
-      <text class="example-text">参考示例</text>
-    </view>
   </view>
 
   <!-- 优化风格选择区 -->
@@ -72,5 +74,86 @@
     <text class="privacy-link">服务协议</text>
     <text class="privacy-text">与</text>
     <text class="privacy-link">隐私政策</text>
+  </view>
+
+  <!-- 参考示例弹窗 -->
+  <view class="modal-mask {{showExampleModal ? 'show' : ''}}" bindtap="closeExampleModal"></view>
+  <view class="example-modal {{showExampleModal ? 'show' : ''}}">
+    <!-- 弹窗头部 -->
+    <view class="modal-header">
+      <text class="modal-title">生成参考示例</text>
+      <view class="modal-close" bindtap="closeExampleModal">×</view>
+    </view>
+
+    <!-- 弹窗内容 -->
+    <view class="modal-content">
+      <!-- 职业分类 -->
+      <view class="form-item">
+        <text class="form-label">职业分类 <text class="required">*</text></text>
+        <view class="option-list">
+          <view
+            wx:for="{{categoryOptions}}"
+            wx:key="value"
+            class="option-item {{exampleForm.category === item.value ? 'selected' : ''}}"
+            bindtap="selectCategory"
+            data-value="{{item.value}}"
+          >
+            {{item.label}}
+          </view>
+        </view>
+
+        <!-- 自定义职业分类输入框 -->
+        <view wx:if="{{isCustomCategory}}" class="custom-category-section">
+          <text class="custom-label">请输入您的职业领域：</text>
+          <input
+            class="custom-category-input"
+            placeholder="例如：教育培训、医疗健康、法律服务等"
+            value="{{customCategoryInput}}"
+            bindinput="inputCustomCategory"
+            maxlength="20"
+          />
+          <text class="custom-hint">{{customCategoryInput.length || 0}}/20字</text>
+        </view>
+      </view>
+
+      <!-- 工作年限 -->
+      <view class="form-item">
+        <text class="form-label">工作年限 <text class="required">*</text></text>
+        <view class="option-list">
+          <view
+            wx:for="{{experienceOptions}}"
+            wx:key="value"
+            class="option-item {{exampleForm.experience === item.value ? 'selected' : ''}}"
+            bindtap="selectExperience"
+            data-value="{{item.value}}"
+          >
+            {{item.label}}
+          </view>
+        </view>
+      </view>
+
+      <!-- 工作岗位 -->
+      <view class="form-item">
+        <text class="form-label">工作岗位 <text class="required">*</text></text>
+        <input
+          class="position-input"
+          placeholder="请输入具体岗位，如：前端工程师"
+          value="{{exampleForm.position}}"
+          bindinput="inputPosition"
+        />
+      </view>
+    </view>
+
+    <!-- 弹窗底部 -->
+    <view class="modal-footer">
+      <button
+        class="generate-btn"
+        bindtap="confirmGenerateExample"
+        disabled="{{isGeneratingExample}}"
+      >
+        <text wx:if="{{!isGeneratingExample}}">AI生成示例</text>
+        <text wx:if="{{isGeneratingExample}}">生成中...</text>
+      </button>
+    </view>
   </view>
 </view>
