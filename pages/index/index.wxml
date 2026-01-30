@@ -16,9 +16,17 @@
   <view class="input-section">
     <view class="input-header">
       <text class="input-label">工作经历描述</text>
-      <view class="example-btn" bindtap="fillExample">
-        <text class="example-icon">💡</text>
-        <text class="example-text">参考示例</text>
+      <view class="input-actions">
+        <!-- 复制按钮 -->
+        <view wx:if="{{workExperience}}" class="action-btn-small {{copySuccess ? 'success' : ''}}" bindtap="copyToClipboard">
+          <text class="action-icon">{{copySuccess ? '✓' : '📋'}}</text>
+          <text class="action-text">{{copySuccess ? '已复制' : '复制'}}</text>
+        </view>
+        <!-- 参考示例按钮 -->
+        <view class="action-btn-small primary" bindtap="fillExample">
+          <text class="action-icon">💡</text>
+          <text class="action-text">参考示例</text>
+        </view>
       </view>
     </view>
     <textarea
@@ -26,6 +34,8 @@
       placeholder="请粘贴或输入一段需要优化的工作经历描述..."
       bindinput="bindTextAreaInput"
       value="{{workExperience}}"
+      maxlength="2000"
+      auto-height
     ></textarea>
   </view>
 

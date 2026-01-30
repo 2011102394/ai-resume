@@ -21,24 +21,24 @@ cloud.init({
 })
 
 // ============================================
-// 混元大模型配置 - 方式一：直接填写（仅测试使用，生产环境请用方式二）
+// 混元大模型配置（OpenAI 兼容接口）
 // ============================================
-// const HUNYUAN_CONFIG = {
-//   secretId: '你的SecretId',      // 替换为你的腾讯云 SecretId
-//   secretKey: '你的SecretKey',    // 替换为你的腾讯云 SecretKey
-//   region: 'ap-guangzhou'          // 广州地域
+// 配置方式一：直接填写（仅测试使用）
+// const OPENAI_CONFIG = {
+//   apiKey: 'sk-your-api-key',     // OpenAI 兼容接口的 API Key（以 sk- 开头）
+//   baseURL: 'https://xxx.api.tcloudbasegateway.com/v1'  // OpenAI 兼容接口地址
 // }
 
 // ============================================
-// 混元大模型配置 - 方式二：环境变量（推荐，更安全）
+// 配置方式二：环境变量（推荐，更安全）
 // ============================================
-// 1. 在微信开发者工具中，点击「云开发」→「云函数」→「环境变量」
-// 2. 添加两个变量：TENCENT_SECRET_ID 和 TENCENT_SECRET_KEY
-// 3. 然后使用下面的配置：
-const HUNYUAN_CONFIG = {
-  secretId: process.env.TENCENT_SECRET_ID,
-  secretKey: process.env.TENCENT_SECRET_KEY,
-  region: 'ap-guangzhou'
+// 在微信开发者工具中，点击「云开发」→「云函数」→「环境变量」
+// 添加两个变量：
+//   - OPENAI_API_KEY: 你的 OpenAI 兼容接口 API Key
+//   - OPENAI_BASE_URL: 你的 OpenAI 兼容接口地址
+const OPENAI_CONFIG = {
+  apiKey: process.env.OPENAI_API_KEY,
+  baseURL: process.env.OPENAI_BASE_URL
 }
 
 // 工作年限映射
@@ -49,65 +49,89 @@ const EXPERIENCE_MAP = {
   'expert': '10年以上（专家）'
 }
 
-// 调用混元大模型
+// 调用混元大模型（使用 OpenAI 兼容接口）
 async function callHunyuan(prompt) {
-  // 使用腾讯云 API 3.0 签名方式
-  const tencentcloud = require('tencentcloud-sdk-nodejs')
-  const HunyuanClient = tencentcloud.hunyuan.v20230901.Client
-  const models = tencentcloud.hunyuan.v20230901.Models
+  const OpenAI = require('openai')
 
-  const clientConfig = {
-    credential: {
-      secretId: HUNYUAN_CONFIG.secretId,
-      secretKey: HUNYUAN_CONFIG.secretKey,
-    },
-    region: HUNYUAN_CONFIG.region,
-    profile: {
-      signMethod: 'TC3-HMAC-SHA256',
-      httpProfile: {
-        reqMethod: 'POST',
-        reqTimeout: 30,
-      },
-    },
+  // 检查配置
+  if (!OPENAI_CONFIG.apiKey || !OPENAI_CONFIG.baseURL) {
+    throw new Error('OpenAI 配置不完整，请检查环境变量 OPENAI_API_KEY 和 OPENAI_BASE_URL')
   }
 
-  const client = new HunyuanClient(clientConfig)
-  const req = new models.ChatCompletionsRequest()
-
-  req.Model = 'hunyuan-turbos-latest'  // 使用混元 Turbo S 最新版
-  req.Messages = [
-    {
-      Role: 'user',
-      Content: prompt
-    }
-  ]
-  req.Temperature = 0.7
-  req.TopP = 0.8
-
-  return new Promise((resolve, reject) => {
-    client.ChatCompletions(req, (err, response) => {
-      if (err) {
-        reject(err)
-        return
-      }
-      resolve(response.Choices[0].Message.Content)
-    })
+  const client = new OpenAI({
+    apiKey: OPENAI_CONFIG.apiKey,
+    baseURL: OPENAI_CONFIG.baseURL
   })
+
+  const completion = await client.chat.completions.create({
+    model: 'hunyuan-turbos-latest',
+    messages: [
+      { role: 'user', content: prompt }
+    ],
+    temperature: 0.7,
+    max_tokens: 2048
+  })
+
+  return completion.choices[0].message.content
 }
 
 // 备用：模拟生成（当没有配置API Key时使用）
 function mockGenerate(category, experience, position) {
-  const examples = {
-    'tech': `负责公司${position}核心模块开发（S），承担系统性能优化与高并发处理目标（T），通过引入微服务架构+Redis缓存优化方案（A），将接口响应时间从800ms降至120ms，支撑日活用户从10万增长至100万，代码质量提升40%（R）`,
-    'product': `主导${position}从0到1产品设计（S），承担用户增长与留存优化目标（T），通过深度用户调研+数据驱动迭代+精细化运营策略（A），实现DAU增长300%，用户留存率从30%提升至65%，NPS评分达到45分（R）`,
-    'operation': `统筹${position}渠道运营工作（S），承担粉丝增长与转化提升目标（T），通过策划系列专题内容+裂变活动+精准投放策略（A），3个月内公众号涨粉200%，阅读量提升150%，转化率提升3个百分点（R）`,
-    'sales': `负责华东区域${position}大客户拓展（S），承担年度销售业绩目标（T），通过建立客户分级管理体系+定制化解决方案+定期回访机制（A），年度签约额达1200万，超额完成KPI 140%，客户续约率95%（R）`,
-    'hr': `主导${position}招聘体系搭建（S），承担人才梯队建设目标（T），通过优化招聘流程+建立人才库+完善面试评估体系（A），招聘周期缩短30%，年度招聘完成率110%，员工试用期通过率提升至92%（R）`,
-    'finance': `负责公司${position}财务报表与预算管理（S），承担成本控制与财务合规目标（T），通过优化核算流程+建立预警机制+推进财务数字化（A），月度结账周期缩短5天，成本节约15%，审计合规率100%（R）`,
-    'default': `负责${position}日常工作（S），承担业务目标与团队任务（T），通过优化工作流程+加强团队协作+提升专业能力（A），工作效率提升30%，任务完成率达到95%，获得客户/领导一致好评（R）`
+  // 根据岗位关键词返回更贴合的示例
+  const positionLower = position.toLowerCase()
+
+  // 前端相关
+  if (positionLower.includes('前端') || positionLower.includes('frontend') || positionLower.includes('web')) {
+    return `负责公司电商平台前端架构升级，承担首页加载性能优化目标，通过引入Vue3+TypeScript重构核心组件、实施代码分割和懒加载策略，将首屏加载时间从4.2秒降至1.1秒，用户跳出率降低35%，代码可维护性评分从60分提升至92分，获得季度技术之星称号。`
   }
 
-  return examples[category] || examples['default']
+  // 后端相关
+  if (positionLower.includes('后端') || positionLower.includes('backend') || positionLower.includes('java') || positionLower.includes('node')) {
+    return `负责订单系统高并发架构设计，承担双十一峰值流量支撑目标，通过引入Redis集群缓存+消息队列异步处理+数据库读写分离方案，将接口QPS从500提升至8000，系统可用性达到99.99%，成功支撑单日千万级订单处理。`
+  }
+
+  // 产品经理
+  if (positionLower.includes('产品') || positionLower.includes('pm')) {
+    return `主导供应链金融产品设计，承担产品商业化落地目标，通过深入调研10+核心客户+设计差异化风控模型+推动敏捷迭代，实现产品上线3个月签约客户50家，放款规模突破2亿元，产品复购率达到78%，成为公司新增长引擎。`
+  }
+
+  // UI设计
+  if (positionLower.includes('ui') || positionLower.includes('设计') || positionLower.includes('ux')) {
+    return `负责公司设计系统搭建，承担提升设计效率和用户体验一致性目标，通过建立组件库+制定设计规范+推动设计走查机制，设计交付效率提升60%，设计还原度从75%提升至95%，用户满意度调研得分提升28%。`
+  }
+
+  // 测试
+  if (positionLower.includes('测试') || positionLower.includes('qa')) {
+    return `负责自动化测试体系建设，承担提升测试覆盖率和发布效率目标，通过引入Playwright自动化测试框架+搭建CI/CD流水线+实施质量门禁，自动化测试覆盖率从30%提升至85%，回归测试时间从3天缩短至2小时，线上Bug率降低60%。`
+  }
+
+  // 运维
+  if (positionLower.includes('运维') || positionLower.includes('devops') || positionLower.includes('sre')) {
+    return `负责云原生架构改造，承担提升系统稳定性和资源利用率目标，通过引入Kubernetes容器编排+Prometheus监控体系+GitOps部署流程，系统可用性从99.5%提升至99.99%，服务器成本降低45%，故障平均恢复时间从30分钟缩短至5分钟。`
+  }
+
+  // 运营
+  if (category === 'operation') {
+    return `统筹公司新媒体矩阵运营，承担粉丝增长与转化提升目标，通过策划系列专题内容+裂变活动+精准投放策略，3个月内公众号涨粉200%，阅读量提升150%，转化率提升3个百分点，单月GMV突破500万。`
+  }
+
+  // 销售
+  if (category === 'sales') {
+    return `负责华东区域大客户拓展，承担年度销售业绩目标，通过建立客户分级管理体系+定制化解决方案+定期回访机制，年度签约额达1200万，超额完成KPI 140%，客户续约率95%，新签3家行业头部客户。`
+  }
+
+  // HR
+  if (category === 'hr') {
+    return `主导公司招聘体系搭建，承担人才梯队建设目标，通过优化招聘流程+建立人才库+完善面试评估体系，招聘周期缩短30%，年度招聘完成率110%，员工试用期通过率提升至92%，关键岗位到岗时间缩短50%。`
+  }
+
+  // 财务
+  if (category === 'finance') {
+    return `负责公司财务报表与预算管理，承担成本控制与财务合规目标，通过优化核算流程+建立预警机制+推进财务数字化，月度结账周期缩短5天，成本节约15%，审计合规率100%，为公司融资提供精准财务数据支持。`
+  }
+
+  // 默认通用
+  return `负责${position}核心工作，承担业务目标与团队任务，通过优化工作流程+提升专业能力+加强团队协作，工作效率提升30%，任务完成率达到95%，获得客户和领导一致好评，连续两个季度绩效评级为A。`
 }
 
 exports.main = async (event, context) => {
@@ -144,24 +168,39 @@ exports.main = async (event, context) => {
 - 工作年限：${experienceLabel}
 - 具体岗位：${cleanPosition}
 
-【要求】
-1. 严格遵循STAR法则（Situation情境、Task任务、Action行动、Result结果）
-2. 包含具体的量化数据（百分比、金额、人数、时间等）
-3. 使用专业术语，体现岗位特性
-4. 字数控制在80-150字之间
-5. 只输出最终优化后的描述，不要解释
+【核心要求】
+1. 严格遵循STAR法则内在逻辑（情境-任务-行动-结果），但**不要**在文本中出现（S）（T）（A）（R）标识
+2. 内容必须紧密结合"${cleanPosition}"这个具体岗位的实际工作内容，使用真实的技术/工具/方法
+3. 包含具体的量化数据（百分比、金额、人数、时间、代码量等）
+4. 使用专业术语，体现该岗位的专业性和技术深度
+5. 字数控制在80-150字之间
+6. 只输出最终优化后的描述，不要解释，不要分段
 
-【示例格式】
-"负责公司核心业务系统架构设计（S），承担百万级用户并发性能优化目标（T），通过引入Redis缓存+数据库分库分表方案（A），将接口响应时间从800ms降至120ms，支撑日活从10万增长至100万（R）"`
+【不同岗位的示例】
+
+前端工程师示例：
+负责公司电商平台前端架构升级，承担首页加载性能优化目标，通过引入Vue3+TypeScript重构核心组件、实施代码分割和懒加载策略，将首屏加载时间从4.2秒降至1.1秒，用户跳出率降低35%，代码可维护性评分从60分提升至92分，获得季度技术之星称号。
+
+后端工程师示例：
+负责订单系统高并发架构设计，承担双十一峰值流量支撑目标，通过引入Redis集群缓存+消息队列异步处理+数据库读写分离方案，将接口QPS从500提升至8000，系统可用性达到99.99%，成功支撑单日千万级订单处理，为公司节省服务器成本40%。
+
+产品经理示例：
+主导供应链金融产品设计，承担产品商业化落地目标，通过深入调研10+核心客户+设计差异化风控模型+推动敏捷迭代，实现产品上线3个月签约客户50家，放款规模突破2亿元，产品复购率达到78%，成为公司新增长引擎。
+
+【重要提醒】
+- 你是为"${cleanPosition}"写简历，内容必须真实反映该岗位的工作
+- 技术岗位要写具体技术栈（如Vue/React/Node.js/MySQL等）
+- 不要生搬硬套，要结合年限体现相应的能力深度
+- 直接输出纯文本，不要有任何格式标记`
 
   try {
     let result
 
-    // 如果有配置API Key，调用真实API；否则使用模拟数据
-    if (HUNYUAN_CONFIG.secretId && HUNYUAN_CONFIG.secretKey) {
+    // 如果有配置 OpenAI API Key，调用真实API；否则使用模拟数据
+    if (OPENAI_CONFIG.apiKey && OPENAI_CONFIG.baseURL) {
       result = await callHunyuan(prompt)
     } else {
-      console.log('未配置混元API Key，使用模拟数据')
+      console.log('未配置 OpenAI API Key 或 BaseURL，使用模拟数据')
       result = mockGenerate(category, experience, cleanPosition)
     }
 

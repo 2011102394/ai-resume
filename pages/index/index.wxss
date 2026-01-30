@@ -127,6 +127,57 @@
   font-size: 24rpx;
 }
 
+/* 头部操作按钮组 */
+.input-actions {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+/* 小操作按钮 */
+.action-btn-small {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 24rpx;
+  background-color: #f5f5f5;
+  border-radius: 30rpx;
+  transition: all 0.2s ease;
+}
+
+.action-btn-small:active {
+  transform: scale(0.95);
+}
+
+.action-btn-small.success {
+  background: linear-gradient(135deg, #07c160, #05a650);
+}
+
+.action-btn-small.success .action-icon,
+.action-btn-small.success .action-text {
+  color: #fff;
+}
+
+.action-btn-small.primary {
+  background: linear-gradient(135deg, #07c160, #05a650);
+  box-shadow: 0 4rpx 12rpx rgba(7, 193, 96, 0.25);
+}
+
+.action-btn-small.primary .action-icon,
+.action-btn-small.primary .action-text {
+  color: #fff;
+}
+
+.action-icon {
+  font-size: 24rpx;
+}
+
+.action-text {
+  font-size: 24rpx;
+  color: #666;
+  font-weight: 500;
+}
+
 /* 优化风格选择区 */
 .style-section {
   margin-bottom: 60rpx;

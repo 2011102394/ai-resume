@@ -6,6 +6,8 @@ Page({
     isOptimizing: false,
     typedTitle: '',
     fullTitle: '为你的工作经历画龙点睛',
+    // 复制按钮状态
+    copySuccess: false,
     // 弹窗相关数据
     showExampleModal: false,
     isGeneratingExample: false,
@@ -83,6 +85,45 @@ Page({
   bindTextAreaInput: function (e) {
     this.setData({
       workExperience: e.detail.value
+    })
+  },
+
+  // 复制到剪贴板
+  copyToClipboard: function () {
+    const text = this.data.workExperience
+    if (!text || !text.trim()) {
+      wx.showToast({
+        title: '没有可复制的内容',
+        icon: 'none'
+      })
+      return
+    }
+
+    wx.setClipboardData({
+      data: text,
+      success: () => {
+        // 显示复制成功状态
+        this.setData({ copySuccess: true })
+
+        // 2秒后恢复按钮状态
+        setTimeout(() => {
+          this.setData({ copySuccess: false })
+        }, 2000)
+
+        // 显示成功提示（使用 wx.hideToast 先隐藏 setClipboardData 的默认提示）
+        wx.hideToast()
+        wx.showToast({
+          title: '已复制到剪贴板',
+          icon: 'success',
+          duration: 2000
+        })
+      },
+      fail: () => {
+        wx.showToast({
+          title: '复制失败，请重试',
+          icon: 'none'
+        })
+      }
     })
   },
 
