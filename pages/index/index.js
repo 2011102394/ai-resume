@@ -30,55 +30,94 @@ Page({
   },
 
   onLoad: function () {
-    this.typeWriter()
+    this.startTypewriterAnimation()
     this.loadCategories()
   },
 
-  // 打字机效果函数 - 循环版
-  typeWriter: function () {
-    const fullTitle = this.data.fullTitle
-    let typedTitle = ''
-    let index = 0
-    
-    // 打字阶段
-    const typeInterval = setInterval(() => {
-      if (index < fullTitle.length) {
-        typedTitle += fullTitle.charAt(index)
-        this.setData({
-          typedTitle: typedTitle
-        })
-        index++
-      } else {
-        clearInterval(typeInterval)
-        // 打字完成后，等待2秒开始消失
-        setTimeout(() => {
-          this.fadeOutTitle()
-        }, 2000)
-      }
-    }, 150) // 每个字符的间隔时间，单位毫秒
+  onUnload: function () {
+    this.stopTypewriterAnimation()
   },
 
-  // 标题淡出效果
-  fadeOutTitle: function () {
+  startTypewriterAnimation: function () {
+    this.stopTypewriterAnimation()
+    this.data._animationState = {
+      isAnimating: true,
+      phase: 'typing',
+      currentIndex: 0,
+      lastFrameTime: 0,
+      pauseStartTime: 0
+    }
+    this._animateLoop()
+  },
+
+  stopTypewriterAnimation: function () {
+    const state = this.data._animationState
+    if (state) {
+      state.isAnimating = false
+    }
+    if (this._animationTimerId) {
+      clearTimeout(this._animationTimerId)
+      this._animationTimerId = null
+    }
+  },
+
+  _animateLoop: function () {
+    const state = this.data._animationState
+    if (!state || !state.isAnimating) return
+
+    const now = Date.now()
     const fullTitle = this.data.fullTitle
-    let typedTitle = fullTitle
-    let index = fullTitle.length - 1
-    
-    const fadeInterval = setInterval(() => {
-      if (index >= 0) {
-        typedTitle = typedTitle.substring(0, index)
-        this.setData({
-          typedTitle: typedTitle
-        })
-        index--
-      } else {
-        clearInterval(fadeInterval)
-        // 消失完成后，等待1秒重新开始
-        setTimeout(() => {
-          this.typeWriter()
-        }, 1000)
+    const TYPE_SPEED = 150
+    const DELETE_SPEED = 100
+    const WAIT_AFTER_TYPE = 2000
+    const WAIT_AFTER_DELETE = 1000
+
+    if (state.phase === 'typing') {
+      if (!state.lastFrameTime) state.lastFrameTime = now
+      const elapsed = now - state.lastFrameTime
+
+      if (elapsed >= TYPE_SPEED) {
+        if (state.currentIndex < fullTitle.length) {
+          state.currentIndex++
+          this.setData({
+            typedTitle: fullTitle.substring(0, state.currentIndex)
+          })
+          state.lastFrameTime = now
+        } else {
+          state.phase = 'waiting_to_delete'
+          state.pauseStartTime = now
+        }
       }
-    }, 100) // 每个字符的消失间隔时间，单位毫秒
+    } else if (state.phase === 'waiting_to_delete') {
+      if (now - state.pauseStartTime >= WAIT_AFTER_TYPE) {
+        state.phase = 'deleting'
+        state.currentIndex = fullTitle.length
+        state.lastFrameTime = now
+      }
+    } else if (state.phase === 'deleting') {
+      if (now - state.lastFrameTime >= DELETE_SPEED) {
+        if (state.currentIndex > 0) {
+          state.currentIndex--
+          this.setData({
+            typedTitle: fullTitle.substring(0, state.currentIndex)
+          })
+          state.lastFrameTime = now
+        } else {
+          state.phase = 'waiting_to_restart'
+          state.pauseStartTime = now
+        }
+      }
+    } else if (state.phase === 'waiting_to_restart') {
+      if (now - state.pauseStartTime >= WAIT_AFTER_DELETE) {
+        state.phase = 'typing'
+        state.currentIndex = 0
+        state.lastFrameTime = now
+      }
+    }
+
+    if (state.isAnimating) {
+      this._animationTimerId = setTimeout(this._animateLoop.bind(this), 16)
+    }
   },
 
   // 处理文本输入
