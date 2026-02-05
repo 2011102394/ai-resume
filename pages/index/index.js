@@ -364,7 +364,7 @@ Page({
   },
 
   // 开始AI优化
-  startOptimization: function () {
+  startOptimization: async function () {
     if (!this.data.workExperience.trim()) {
       wx.showToast({
         title: '请输入工作经历描述',
@@ -378,20 +378,57 @@ Page({
       isOptimizing: true
     })
 
-    // 模拟AI优化过程（实际项目中这里会调用云函数）
-    setTimeout(() => {
-      // 优化完成
+    try {
+      // 调用云函数优化简历
+      const res = await wx.cloud.callFunction({
+        name: 'optimizeResume',
+        data: {
+          content: this.data.workExperience,
+          style: this.data.selectedStyle
+        },
+        timeout: 60000 // 60秒超时，需要与云函数超时时间匹配
+      })
+
+      // 优化完成，移除加载状态
       this.setData({
         isOptimizing: false
       })
-      
-      // 显示优化成功提示
-      wx.showToast({
-        title: '优化完成',
-        icon: 'success'
+
+      // 检查返回结果
+      if (res.result && res.result.code === 0) {
+        // 优化成功，更新工作经历内容
+        const optimizedText = res.result.data
+        this.setData({
+          workExperience: optimizedText
+        })
+
+        // 显示优化成功提示
+        wx.showToast({
+          title: res.result.message || '优化完成',
+          icon: 'success',
+          duration: 2000
+        })
+      } else {
+        // 优化失败
+        const errorMsg = res.result ? res.result.message : '优化失败，请重试'
+        wx.showToast({
+          title: errorMsg,
+          icon: 'none',
+          duration: 3000
+        })
+      }
+    } catch (err) {
+      console.error('调用云函数失败:', err)
+      // 移除加载状态
+      this.setData({
+        isOptimizing: false
       })
-      
-      // 这里可以添加优化结果的处理逻辑
-    }, 2000)
+
+      wx.showToast({
+        title: '网络错误，请检查网络后重试',
+        icon: 'none',
+        duration: 3000
+      })
+    }
   }
 })
