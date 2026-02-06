@@ -1,4 +1,8 @@
 // pages/index/index.js
+const { checkUsage, consumeUsage, getRemainingTime, MAX_FREE, MAX_TOTAL } = require('../../utils/usage')
+const config = require('../../config/config.js')
+const app = getApp()
+
 Page({
   data: {
     workExperience: '',
@@ -26,16 +30,36 @@ Page({
       { value: 'middle', label: '3-5年（中级）' },
       { value: 'senior', label: '5-10年（高级）' },
       { value: 'expert', label: '10年以上（专家）' }
-    ]
+    ],
+    // 用户系统相关
+    usageInfo: null,           // 次数信息
+    adLoaded: false,            // 广告是否加载
+    showAdButton: false,        // 是否显示广告按钮
+    remainingTime: ''           // 剩余重置时间
   },
 
   onLoad: function () {
     this.startTypewriterAnimation()
     this.loadCategories()
+
+    // 初始化用户系统
+    this.updateUsageDisplay()
+
+    // 初始化激励视频广告
+    if (wx.createRewardedVideoAd) {
+      this.initRewardedAd()
+    } else {
+      console.warn('[AD] 基础库版本不支持激励视频广告')
+    }
   },
 
   onUnload: function () {
     this.stopTypewriterAnimation()
+
+    // 销毁广告实例
+    if (this.rewardedVideoAd) {
+      this.rewardedVideoAd = null
+    }
   },
 
   startTypewriterAnimation: function () {
@@ -373,6 +397,20 @@ Page({
       return
     }
 
+    // 1. 检查使用次数
+    const usage = checkUsage()
+
+    if (!usage.canUse) {
+      if (usage.type === 'need_ad') {
+        // 免费次数用完，提示看广告
+        await this.showAdPrompt()
+      } else if (usage.type === 'limit_reached') {
+        // 达到上限，引导登录
+        await this.showLoginPrompt()
+      }
+      return
+    }
+
     // 显示加载状态
     this.setData({
       isOptimizing: true
@@ -396,11 +434,22 @@ Page({
 
       // 检查返回结果
       if (res.result && res.result.code === 0) {
-        // 优化成功，更新工作经历内容
+        // 2. 优化成功，扣减次数
+        consumeUsage('free')
+
+        // 3. 更新工作经历内容
         const optimizedText = res.result.data
         this.setData({
           workExperience: optimizedText
         })
+
+        // 4. 保存历史记录（仅登录用户）
+        if (app.checkLogin()) {
+          this.saveHistoryRecord(this.data.workExperience, optimizedText)
+        }
+
+        // 5. 更新次数显示
+        this.updateUsageDisplay()
 
         // 显示优化成功提示
         wx.showToast({
@@ -430,5 +479,268 @@ Page({
         duration: 3000
       })
     }
-  }
+  },
+
+  /**
+   * 更新次数显示
+   */
+  updateUsageDisplay: function() {
+    const usage = checkUsage()
+    const remainingTime = getRemainingTime()
+
+    this.setData({
+      usageInfo: usage,
+      remainingTime: remainingTime,
+      showAdButton: usage.type === 'need_ad' && this.data.adLoaded
+    })
+  },
+
+  /**
+   * 提示看广告
+   */
+  async showAdPrompt() {
+    const usage = checkUsage()
+
+    const res = await wx.showModal({
+      title: '次数不足',
+      content: `今日免费次数已用完，观看短视频可获取额外${usage.remaining}次使用机会`,
+      confirmText: '观看广告',
+      cancelText: '取消'
+    })
+
+    if (res.confirm) {
+      await this.showRewardedAd()
+    } else {
+      // 引导登录
+      await this.showLoginPrompt()
+    }
+  },
+
+  /**
+   * 提示登录
+   */
+  async showLoginPrompt() {
+    if (app.checkLogin()) {
+      // 已经登录
+      wx.showModal({
+        title: '次数已用完',
+        content: '今日次数已达上限，' + this.data.remainingTime + '后重置',
+        showCancel: false
+      })
+      return
+    }
+
+    const res = await wx.showModal({
+      title: '解锁更多次数',
+      content: '登录后可查看历史记录，并在其他设备继续编辑',
+      confirmText: '去登录',
+      cancelText: '取消'
+    })
+
+    if (res.confirm) {
+      wx.navigateTo({ url: '/pages/login/login' })
+    }
+  },
+
+  /**
+   * 初始化激励视频广告
+   */
+  initRewardedAd: function() {
+    // 从配置文件读取广告单元ID
+    const AD_UNIT_ID = config.getAdUnitId('rewardedVideo')
+
+    if (!AD_UNIT_ID && !config.isDevelopment()) {
+      console.error('[AD] 生产环境广告单元ID未配置，请在config/config.js中配置')
+      wx.showToast({
+        title: '广告配置有误',
+        icon: 'none'
+      })
+      return
+    }
+
+    console.log('[AD] 使用广告单元ID:', AD_UNIT_ID)
+
+    this.rewardedVideoAd = wx.createRewardedVideoAd({
+      adUnitId: AD_UNIT_ID
+    })
+
+    // 监听广告加载成功
+    this.rewardedVideoAd.onLoad(() => {
+      console.log('[AD] 广告加载成功')
+      this.setData({ adLoaded: true })
+      this.updateUsageDisplay()
+    })
+
+    // 监听广告加载错误
+    this.rewardedVideoAd.onError((err) => {
+      console.error('[AD] 广告加载失败:', err)
+
+      // 根据错误码给出不同提示
+      let message = '广告加载失败'
+      switch (err.errCode) {
+        case 1004:
+          // 无适合广告，属于正常情况
+          this.setData({ adAvailable: false, showAdButton: false })
+          return
+        case 1000:
+        case 1003:
+          message = '服务暂时不可用，请稍后再试'
+          break
+        case 1002:
+          message = '广告配置错误，请联系客服'
+          break
+        case 1005:
+          message = '广告审核中，暂不可用'
+          break
+        case 1006:
+          message = '广告审核未通过'
+          break
+        case 1007:
+          message = '广告功能已被禁用'
+          break
+        case 1008:
+          message = '广告位已关闭'
+          break
+      }
+
+      this.setData({ adLoaded: false, showAdButton: false })
+      if (err.errCode !== 1004) {
+        wx.showToast({ title: message, icon: 'none' })
+      }
+    })
+
+    // 监听广告关闭
+    this.rewardedVideoAd.onClose((res) => {
+      if (res && res.isEnded) {
+        // 用户看完广告，发放奖励
+        this.onAdRewarded()
+      } else {
+        wx.showToast({
+          title: '需要完整观看广告才能获得奖励',
+          icon: 'none'
+        })
+      }
+    })
+
+    // 预加载广告
+    this.rewardedVideoAd.load().catch(err => {
+      console.error('[AD] 预加载失败:', err)
+    })
+  },
+
+  /**
+   * 显示激励视频广告
+   */
+  async showRewardedAd() {
+    if (!this.rewardedVideoAd) {
+      this.initRewardedAd()
+    }
+
+    try {
+      await this.rewardedVideoAd.show()
+    } catch (err) {
+      console.error('[AD] 广告显示失败:', err)
+      // 广告未加载，先加载再显示
+      try {
+        await this.rewardedVideoAd.load()
+        await this.rewardedVideoAd.show()
+      } catch (loadErr) {
+        wx.showToast({ title: '广告加载失败，请稍后重试', icon: 'none' })
+      }
+    }
+  },
+
+  /**
+   * 广告奖励回调
+   */
+  onAdRewarded: async function() {
+    try {
+      // 1. 调用云函数记录广告观看
+      const res = await wx.cloud.callFunction({
+        name: 'recordAdWatch',
+        data: {
+          adUnitId: config.getAdUnitId('rewardedVideo')  // 从配置文件读取
+        }
+      })
+
+      if (res.result && res.result.code === 0) {
+        // 2. 扣减广告次数
+        const success = consumeUsage('ad')
+
+        if (success) {
+          this.updateUsageDisplay()
+
+          wx.showToast({
+            title: `获得额外1次，今日剩余${res.result.data.remaining}次`,
+            icon: 'success',
+            duration: 2000
+          })
+        } else {
+          wx.showToast({
+            title: '奖励发放失败',
+            icon: 'none'
+          })
+        }
+      } else if (res.result && res.result.code === -1) {
+        // 防刷拦截
+        wx.showToast({
+          title: res.result.message || '请勿频繁观看广告',
+          icon: 'none'
+        })
+      } else {
+        wx.showToast({
+          title: '奖励发放失败',
+          icon: 'none'
+        })
+      }
+    } catch (err) {
+      console.error('[AD] 奖励发放失败:', err)
+      wx.showToast({ title: '奖励发放失败', icon: 'none' })
+    }
+  },
+
+  /**
+   * 保存历史记录（仅登录用户）
+   */
+  saveHistoryRecord: async function(originalContent, optimizedContent) {
+    try {
+      const res = await wx.cloud.callFunction({
+        name: 'saveHistoryRecord',
+        data: {
+          originalContent,
+          optimizedContent,
+          style: this.data.selectedStyle,
+          styleName: this.getStyleName(this.data.selectedStyle)
+        }
+      })
+
+      if (res.result && res.result.code === 0) {
+        console.log('[HISTORY] 保存成功:', res.result.data.id)
+      } else {
+        console.warn('[HISTORY] 保存失败:', res.result.message)
+      }
+    } catch (err) {
+      console.error('[HISTORY] 保存失败:', err)
+      // 历史记录保存失败不影响主流程，静默处理
+    }
+  },
+
+  /**
+   * 获取优化风格名称
+   */
+  getStyleName: function(style) {
+    const styleMap = {
+      'data': '数据突出型',
+      'leadership': '领导力凸显型',
+      'concise': '简洁通用型'
+    }
+    return styleMap[style] || '数据突出型'
+  },
+
+  /**
+   * 跳转到用户中心
+   */
+  goToUserCenter: function() {
+    wx.navigateTo({ url: '/pages/usercenter/usercenter' })
+  },
 })

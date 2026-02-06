@@ -3,7 +3,7 @@
   <!-- 顶部品牌区 -->
   <view class="brand-header">
     <view class="brand-icon">✨</view>
-    <view class="more-btn">⋯</view>
+    <view class="more-btn" bindtap="goToUserCenter">⋯</view>
   </view>
 
   <!-- 标题/标语区 -->

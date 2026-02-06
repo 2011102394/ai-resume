@@ -1,0 +1,49 @@
+<!-- pages/login/login.wxml -->
+<view class="login-container">
+  <!-- Logo区域 -->
+  <view class="logo-section">
+    <image class="logo" src="/images/logo.png" mode="aspectFit"></image>
+    <text class="app-name">简历点睛</text>
+    <text class="app-slogan">智能简历优化助手</text>
+  </view>
+
+  <!-- 登录卡片 -->
+  <view class="login-card">
+    <view class="card-title">欢迎回来</view>
+
+    <view class="card-desc">
+      <text>登录后可查看历史记录，</text>
+      <text>并在其他设备继续编辑</text>
+    </view>
+
+    <view class="login-features">
+      <view class="feature-item">
+        <text class="feature-icon">📋</text>
+        <text class="feature-text">历史记录</text>
+      </view>
+      <view class="feature-item">
+        <text class="feature-icon">☁️</text>
+        <text class="feature-text">云端同步</text>
+      </view>
+      <view class="feature-item">
+        <text class="feature-icon">📱</text>
+        <text class="feature-text">多设备访问</text>
+      </view>
+    </view>
+
+    <!-- 登录按钮 -->
+    <button
+      class="login-btn"
+      bindtap="handleLogin"
+      loading="{{loading}}"
+      disabled="{{loading}}"
+    >
+      微信授权登录
+    </button>
+
+    <!-- 返回按钮 -->
+    <view class="back-section">
+      <text class="back-link" bindtap="goBack">暂不登录，返回首页</text>
+    </view>
+  </view>
+</view>
